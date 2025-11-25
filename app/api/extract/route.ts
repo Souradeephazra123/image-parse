@@ -48,10 +48,10 @@ Be accurate with numbers, dates, and amounts. Return null or omit fields that do
 
     const userPrompt = "Extract all text from this image. Identify the document type and provide structured data if applicable.";
 
-    // Ensure the image data is in the correct format (data URL with MIME type)
+   
     const imageData = image.includes(",") 
-      ? image // Already has data URL prefix
-      : `data:${mimeType || "image/jpeg"};base64,${image}`; // Add prefix if missing
+      ? image 
+      : `data:${mimeType || "image/jpeg"};base64,${image}`; 
 
     const { object: extractedData,usage } = await generateObject({
       model: geminiModel,
@@ -88,7 +88,7 @@ Be accurate with numbers, dates, and amounts. Return null or omit fields that do
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     
-    // Handle specific AI SDK errors
+ 
     if (error.message?.includes("API_KEY")) {
       return NextResponse.json(
         { 
