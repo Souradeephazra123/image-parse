@@ -19,10 +19,10 @@ import {
 type ExtractionMode = "basic" | "ai";
 
 interface StructuredData {
-  document_type?: string;
-  raw_text?: string;
-  structured_data?: any;
-  parse_error?: string;
+  bill_no: string;
+  amount: string;
+  purpose: "Conveyance" | "Train" | "Bus" | "Food" | "Hotel" | "Project Expense" | "Other";
+  raw_text: string;
 }
 
 export default function ImageOCR() {
@@ -155,7 +155,9 @@ export default function ImageOCR() {
       // Set extracted data
       const extractedData = result.data;
       setStructuredData(extractedData);
-      setText(extractedData.raw_text || JSON.stringify(extractedData, null, 2));
+      
+      // For AI mode, show a summary in the text field for basic display
+      setText(extractedData.raw_text || "");
 
     } catch (err: any) {
       console.error(err);
@@ -365,63 +367,157 @@ export default function ImageOCR() {
 
         {/* Right Column: Results */}
         <div className="space-y-6">
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-border/50 h-full min-h-[500px] flex flex-col overflow-hidden shadow-lg">
-            <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                  <FileText size={18} />
+          {structuredData && mode === "ai" ? (
+            /* AI Extraction Results - Expense Cards */
+            <div className="space-y-4">
+              {/* Bill Number Card */}
+              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Bill Number</p>
+                    <p className="text-2xl font-bold text-foreground">{structuredData.bill_no}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <FileText size={24} />
+                  </div>
                 </div>
-                <h3 className="font-semibold text-foreground">Extracted Text</h3>
+              </div>
+
+              {/* Amount Card */}
+              <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 backdrop-blur-sm rounded-2xl border border-green-500/20 p-6 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-1">Amount</p>
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">{structuredData.amount}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-green-500/20 text-green-600 dark:text-green-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Purpose Card */}
+              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Purpose</p>
+                    <div className="flex items-center gap-2">
+                      {structuredData.purpose === "Conveyance" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 font-semibold text-sm border border-orange-500/20">
+                          🚗 Conveyance
+                        </span>
+                      )}
+                      {structuredData.purpose === "Train" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold text-sm border border-blue-500/20">
+                          🚆 Train
+                        </span>
+                      )}
+                      {structuredData.purpose === "Bus" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-sm border border-indigo-500/20">
+                          🚌 Bus
+                        </span>
+                      )}
+                      {structuredData.purpose === "Food" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 font-semibold text-sm border border-red-500/20">
+                          🍽️ Food
+                        </span>
+                      )}
+                      {structuredData.purpose === "Hotel" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold text-sm border border-purple-500/20">
+                          🏨 Hotel
+                        </span>
+                      )}
+                      {structuredData.purpose === "Project Expense" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold text-sm border border-cyan-500/20">
+                          💼 Project Expense
+                        </span>
+                      )}
+                      {structuredData.purpose === "Other" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-500/10 text-gray-600 dark:text-gray-400 font-semibold text-sm border border-gray-500/20">
+                          📋 Other
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Raw Text Collapsible */}
+              <details className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-lg">
+                <summary className="p-4 cursor-pointer hover:bg-muted/30 transition-colors font-medium text-foreground flex items-center gap-2">
+                  <FileText size={18} className="text-muted-foreground" />
+                  View Raw Extracted Text
+                </summary>
+                <div className="p-4 border-t border-border/50 bg-muted/10">
+                  <pre className="text-sm text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
+                    {structuredData.raw_text}
+                  </pre>
+                </div>
+              </details>
+            </div>
+          ) : (
+            /* Basic OCR or No Results */
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-border/50 h-full min-h-[500px] flex flex-col overflow-hidden shadow-lg">
+              <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <FileText size={18} />
+                  </div>
+                  <h3 className="font-semibold text-foreground">Extracted Text</h3>
+                </div>
+                
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={copyToClipboard}
+                    disabled={!text}
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Copy to clipboard"
+                  >
+                    <Copy size={18} />
+                  </button>
+                  <button 
+                    onClick={downloadText}
+                    disabled={!text}
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Download as .txt"
+                  >
+                    <Download size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 p-6 relative overflow-auto">
+                {text ? (
+                  <textarea
+                    value={text}
+                    readOnly
+                    className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-foreground/90 leading-relaxed font-mono text-sm"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 p-8 text-center">
+                    <ImageIcon size={48} className="mb-4 opacity-20" />
+                    <p className="text-lg font-medium">No text extracted yet</p>
+                    <p className="text-sm mt-2 max-w-xs">
+                      Upload an image and click &quot;Extract&quot; to see the results here.
+                    </p>
+                  </div>
+                )}
               </div>
               
-              <div className="flex items-center gap-1">
-                <button 
-                  onClick={copyToClipboard}
-                  disabled={!text}
-                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Copy to clipboard"
-                >
-                  <Copy size={18} />
-                </button>
-                <button 
-                  onClick={downloadText}
-                  disabled={!text}
-                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Download as .txt"
-                >
-                  <Download size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 p-6 relative overflow-auto">
-              {text ? (
-                <textarea
-                  value={text}
-                  readOnly
-                  className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-foreground/90 leading-relaxed font-mono text-sm"
-                />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 p-8 text-center">
-                  <ImageIcon size={48} className="mb-4 opacity-20" />
-                  <p className="text-lg font-medium">No text extracted yet</p>
-                  <p className="text-sm mt-2 max-w-xs">
-                    Upload an image and click &quot;Extract&quot; to see the results here.
-                  </p>
+              {text && (
+                <div className="p-3 border-t border-border/50 bg-muted/30 text-xs text-muted-foreground flex justify-between items-center">
+                  <span>{text.length} characters</span>
+                  <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                    <CheckCircle2 size={12} />
+                    Extraction Complete
+                  </span>
                 </div>
               )}
             </div>
-            
-            {text && (
-              <div className="p-3 border-t border-border/50 bg-muted/30 text-xs text-muted-foreground flex justify-between items-center">
-                <span>{text.length} characters</span>
-                <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                  <CheckCircle2 size={12} />
-                  Extraction Complete
-                </span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -6,11 +6,12 @@ import { z } from "zod";
 
 const geminiModel = google("gemini-2.0-flash-exp");
 
-
+// Fine-tuned schema for expense tracking
 const extractedDataSchema = z.object({
-  document_type: z.string().describe("Type of document detected (e.g., receipt, invoice, form, letter, menu, sign, etc.)"),
-  raw_text: z.string().describe("All extracted text from the image, preserving layout and formatting as much as possible"),
-  structured_data: z.any().optional().describe("Optional structured data based on document type. For receipts: merchant, items, pricing. For forms: field-value pairs. For other documents: relevant key information."),
+  bill_no: z.string().describe("Bill number, invoice number, or receipt number extracted from the document. If not found, return 'N/A'"),
+  amount: z.string().describe("Total amount or bill amount. Extract the final total value with currency symbol if present. If not found, return '0'"),
+  purpose: z.enum(["Conveyance", "Train", "Bus", "Food", "Hotel", "Project Expense", "Other"]).describe("Intelligently categorize the expense purpose based on document content. Analyze merchant name, items purchased, and context to determine the most appropriate category."),
+  raw_text: z.string().describe("All extracted text from the image for reference"),
 });
 
 export async function POST(request: NextRequest) {
@@ -26,27 +27,47 @@ export async function POST(request: NextRequest) {
     }
 
 
-    const systemPrompt = `You are an expert OCR and document understanding system with perfect accuracy.
+    const systemPrompt = `You are an expert expense tracking assistant with perfect OCR accuracy.
 
-Your task is to extract ALL text from images and provide intelligent analysis.
+Your task is to extract specific information from receipts, bills, and invoices for expense tracking.
 
-EXTRACTION RULES:
-1. Extract every piece of visible text, even if partially obscured or low quality
-2. Preserve the layout and structure as much as possible in raw_text
-3. Correct obvious OCR errors using context (e.g., "0" vs "O", "1" vs "I", "5" vs "S")
-4. Identify the document type (receipt, invoice, form, menu, sign, letter, etc.)
+REQUIRED FIELDS TO EXTRACT:
 
-STRUCTURED DATA (OPTIONAL):
-- For receipts/invoices: Extract merchant info, items, prices, totals
-- For forms: Extract field names and values
-- For menus: Extract categories and items with prices
-- For signs/posters: Extract headings and key information
-- For letters/documents: Extract sender, recipient, date, subject
-- For any other type: Extract whatever structured information makes sense
+1. BILL NUMBER (bill_no):
+   - Look for: Invoice #, Receipt #, Bill No, Transaction ID, Order #
+   - Extract the alphanumeric identifier
+   - If not found, return "N/A"
 
-Be accurate with numbers, dates, and amounts. Return null or omit fields that don't apply to the document type.`;
+2. AMOUNT (amount):
+   - Extract the FINAL TOTAL amount (not subtotal)
+   - Include currency symbol if present (₹, $, €, etc.)
+   - Look for: Total, Grand Total, Amount Due, Net Amount
+   - If multiple amounts, choose the largest/final one
+   - If not found, return "0"
 
-    const userPrompt = "Extract all text from this image. Identify the document type and provide structured data if applicable.";
+3. PURPOSE (purpose):
+   Intelligently categorize into ONE of these categories based on context:
+   
+   - "Conveyance": Auto rickshaw, taxi, cab, Uber, Ola, local transport, parking
+   - "Train": Railway tickets, train bookings, IRCTC, metro
+   - "Bus": Bus tickets, bus passes, shuttle services
+   - "Food": Restaurants, cafes, food delivery, Swiggy, Zomato, meals, snacks
+   - "Hotel": Hotel stays, accommodation, lodging, room charges
+   - "Project Expense": Office supplies, equipment, software, tools, materials, stationery
+   - "Other": Anything that doesn't fit the above categories
+
+CATEGORIZATION RULES:
+- Analyze merchant name, items purchased, and document content
+- Use context clues (e.g., "Zomato" → Food, "Uber" → Conveyance)
+- For ambiguous cases, use "Other"
+- Be consistent and logical in categorization
+
+ACCURACY:
+- Extract exact bill numbers (preserve formatting)
+- Be precise with amounts (include decimals)
+- Use contextual intelligence for categorization`;
+
+    const userPrompt = "Extract the bill number, total amount, and intelligently categorize the expense purpose from this receipt/invoice.";
 
    
     const imageData = image.includes(",") 
