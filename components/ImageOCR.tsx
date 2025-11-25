@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createWorker } from "tesseract.js";
 import { 
   Upload, 
   FileText, 
@@ -12,11 +11,8 @@ import {
   Loader2, 
   CheckCircle2,
   AlertCircle,
-  Sparkles,
-  Zap
+  Sparkles
 } from "lucide-react";
-
-type ExtractionMode = "basic" | "ai";
 
 interface StructuredData {
   bill_no: string;
@@ -26,12 +22,10 @@ interface StructuredData {
 }
 
 export default function ImageOCR() {
-  const [mode, setMode] = useState<ExtractionMode>("ai");
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [text, setText] = useState<string>("");
   const [structuredData, setStructuredData] = useState<StructuredData | null>(null);
-  const [progress, setProgress] = useState<number>(0);
   const [status, setStatus] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +50,6 @@ export default function ImageOCR() {
     setError(null);
     setText("");
     setStructuredData(null);
-    setProgress(0);
     setStatus("");
     setApiKeyMissing(false);
   };
@@ -72,38 +65,6 @@ export default function ImageOCR() {
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       processFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const performOCR = async () => {
-    if (!image) return;
-
-    setIsProcessing(true);
-    setError(null);
-    setText("");
-
-    try {
-      const worker = await createWorker("eng", 1, {
-        logger: m => {
-          if (m.status === "recognizing text") {
-            setProgress(Math.round(m.progress * 100));
-            setStatus("Recognizing text...");
-          } else {
-            setStatus(m.status);
-          }
-        }
-      });
-
-      const { data: { text } } = await worker.recognize(image);
-      setText(text);
-      await worker.terminate();
-    } catch (err) {
-      console.error(err);
-      setError("Failed to extract text. Please try again with a clearer image.");
-    } finally {
-      setIsProcessing(false);
-      setProgress(0);
-      setStatus("");
     }
   };
 
@@ -155,8 +116,6 @@ export default function ImageOCR() {
       // Set extracted data
       const extractedData = result.data;
       setStructuredData(extractedData);
-      
-      // For AI mode, show a summary in the text field for basic display
       setText(extractedData.raw_text || "");
 
     } catch (err: any) {
@@ -164,16 +123,7 @@ export default function ImageOCR() {
       setError("Failed to connect to AI service. " + (err.message || ""));
     } finally {
       setIsProcessing(false);
-      setProgress(0);
       setStatus("");
-    }
-  };
-
-  const handleExtract = () => {
-    if (mode === "ai") {
-      performAIExtraction();
-    } else {
-      performOCR();
     }
   };
 
@@ -201,7 +151,6 @@ export default function ImageOCR() {
     setText("");
     setStructuredData(null);
     setError(null);
-    setProgress(0);
     setApiKeyMissing(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -210,35 +159,11 @@ export default function ImageOCR() {
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
-      {/* Mode Selector */}
+      {/* Header */}
       <div className="flex justify-center">
-        <div className="inline-flex items-center gap-2 p-1.5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-xl border border-border/50 shadow-lg">
-          <button
-            onClick={() => setMode("basic")}
-            className={`
-              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
-              ${mode === "basic" 
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md" 
-                : "text-muted-foreground hover:text-foreground"
-              }
-            `}
-          >
-            <Zap size={16} />
-            Basic OCR
-          </button>
-          <button
-            onClick={() => setMode("ai")}
-            className={`
-              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
-              ${mode === "ai" 
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-purple-500/25" 
-                : "text-muted-foreground hover:text-foreground"
-              }
-            `}
-          >
-            <Sparkles size={16} />
-            AI Extract
-          </button>
+        <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl shadow-lg shadow-purple-500/25">
+          <Sparkles size={20} />
+          <span className="font-semibold">AI Expense Tracker</span>
         </div>
       </div>
 
@@ -294,7 +219,7 @@ export default function ImageOCR() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">
-                    Upload an Image
+                    Upload a Receipt
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     Drag & drop or click to browse
@@ -307,19 +232,13 @@ export default function ImageOCR() {
             )}
           </div>
 
-          {image && !text && !isProcessing && (
+          {image && !structuredData && !isProcessing && (
             <button
-              onClick={handleExtract}
-              className={`
-                w-full py-4 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2
-                ${mode === "ai" 
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-purple-500/25" 
-                  : "bg-primary text-primary-foreground shadow-primary/25"
-                }
-              `}
+              onClick={performAIExtraction}
+              className="w-full py-4 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-purple-500/25"
             >
-              {mode === "ai" ? <Sparkles size={20} /> : <Zap size={20} />}
-              {mode === "ai" ? "Extract with AI" : "Extract Text (Basic)"}
+              <Sparkles size={20} />
+              Extract Expense Data
             </button>
           )}
 
@@ -330,16 +249,7 @@ export default function ImageOCR() {
                   <Loader2 size={16} className="animate-spin" />
                   {status || "Processing..."}
                 </span>
-                {mode === "basic" && <span className="text-muted-foreground">{progress}%</span>}
               </div>
-              {mode === "basic" && (
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary transition-all duration-300 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -367,7 +277,7 @@ export default function ImageOCR() {
 
         {/* Right Column: Results */}
         <div className="space-y-6">
-          {structuredData && mode === "ai" ? (
+          {structuredData ? (
             /* AI Extraction Results - Expense Cards */
             <div className="space-y-4">
               {/* Bill Number Card */}
@@ -459,14 +369,14 @@ export default function ImageOCR() {
               </details>
             </div>
           ) : (
-            /* Basic OCR or No Results */
+            /* No Results */
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-border/50 h-full min-h-[500px] flex flex-col overflow-hidden shadow-lg">
               <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-lg bg-primary/10 text-primary">
                     <FileText size={18} />
                   </div>
-                  <h3 className="font-semibold text-foreground">Extracted Text</h3>
+                  <h3 className="font-semibold text-foreground">Expense Data</h3>
                 </div>
                 
                 <div className="flex items-center gap-1">
@@ -490,21 +400,13 @@ export default function ImageOCR() {
               </div>
 
               <div className="flex-1 p-6 relative overflow-auto">
-                {text ? (
-                  <textarea
-                    value={text}
-                    readOnly
-                    className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-foreground/90 leading-relaxed font-mono text-sm"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 p-8 text-center">
-                    <ImageIcon size={48} className="mb-4 opacity-20" />
-                    <p className="text-lg font-medium">No text extracted yet</p>
-                    <p className="text-sm mt-2 max-w-xs">
-                      Upload an image and click &quot;Extract&quot; to see the results here.
-                    </p>
-                  </div>
-                )}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 p-8 text-center">
+                  <ImageIcon size={48} className="mb-4 opacity-20" />
+                  <p className="text-lg font-medium">No data extracted yet</p>
+                  <p className="text-sm mt-2 max-w-xs">
+                    Upload a receipt and click &quot;Extract&quot; to see the expense data here.
+                  </p>
+                </div>
               </div>
               
               {text && (
