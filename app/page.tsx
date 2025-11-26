@@ -27,7 +27,7 @@ export default function Home() {
             
             <p className="max-w-2xl mx-auto text-lg sm:text-xl text-muted-foreground leading-relaxed">
               Extract text from images instantly with advanced optical character recognition. 
-              Fast, accurate, and completely free.
+              Fast and accurate.
             </p>
           </div>
 
