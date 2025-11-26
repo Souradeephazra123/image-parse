@@ -15,7 +15,7 @@ export default function Home() {
           <div className="text-center mb-16 space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium backdrop-blur-sm border border-primary/20">
               <Sparkles size={16} />
-              <span>Powered by Tesseract.js</span>
+              <span>Powered by Gemini</span>
             </div>
             
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground tracking-tight">
